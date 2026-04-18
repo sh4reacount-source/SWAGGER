@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>WIN32::LEGACY</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    cursor: default;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Tahoma', 'MS Sans Serif', sans-serif;
+    background: #000;
+    position: relative;
+}
+
+/* BACKGROUND VIDEO LAYER (hidden until virus triggers) */
+#bgVideo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.9s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    pointer-events: none;
+}
+
+/* DESKTOP MAIN LAYER — STAYS VISIBLE, but gets corrupted */
+.desktop {
+    width: 100%;
+    height: 100%;
+    background: url('background.jpg') no-repeat center center;
+    background-size: cover;
+    position: relative;
+    z-index: 2;
+    transition: filter 0.05s linear;
+}
+
+/* ICON GRID - remains intact and clickable after virus */
+.icon-grid {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    z-index: 5;
+}
+
+.desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90px;
+    cursor: pointer;
+    transition: transform 0.1s ease, filter 0.2s;
+}
+
+.desktop-icon:active {
+    transform: scale(0.96);
+}
+
+.icon-img img {
+    width: 48px;
+    height: 48px;
+    image-rendering: crisp-edges;
+    filter: drop-shadow(1px 1px 0 rgba(0,0,0,0.2));
+}
+
+.big-virus img {
+    width: 96px;
+    height: 96px;
+    transition: all 0.2s;
+}
+
+.icon-label {
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    margin-top: 6px;
+    backdrop-filter: blur(2px);
+    font-weight: 500;
+    text-shadow: 1px 1px 0 #000;
+}
+
+/* TASKBAR - stays visible but corrupted */
+.taskbar {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 42px;
+    background: #c0c0c0;
+    display: flex;
+    align-items: center;
+    padding: 5px 12px;
+    border-top: 2px solid #f0f0f0;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+    z-index: 10;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* GLITCH OVERLAY — intense corruption */
+.glitch {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 0, 0.12),
+        rgba(255, 0, 255, 0.12) 2px,
+        transparent 3px,
+        transparent 6px
+    );
+    animation: flicker 0.05s infinite;
+    display: none;
+    z-index: 15;
+    mix-blend-mode: overlay;
+}
+
+@keyframes flicker {
+    0% { opacity: 0.3; }
+    25% { opacity: 0.7; }
+    50% { opacity: 0.9; }
+    75% { opacity: 0.4; }
+    100% { opacity: 0.3; }
+}
+
+/* TERMINAL — retro hacker style */
+.terminal {
+    position: fixed;
+    top: 60px;
+    left: 60px;
+    width: 580px;
+    max-width: 85vw;
+    height: auto;
+    min-height: 320px;
+    background: #0c0c0c;
+    color: #0f0;
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    padding: 14px 16px;
+    border: 2px solid #0f0;
+    border-radius: 12px;
+    box-shadow: 0 0 25px rgba(0,255,0,0.5), 8px 8px 0px #00000080;
+    z-index: 9999;
+    font-size: 14px;
+    backdrop-filter: blur(1px);
+    white-space: pre-wrap;
+    word-break: break-word;
+    cursor: text;
+    resize: both;
+    overflow: auto;
+}
+
+.terminal::after {
+    content: "_";
+    animation: blink 1s step-end infinite;
+    position: relative;
+    top: 0;
+    margin-left: 4px;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* ERROR WINDOWS (classic win9x style) */
+.error {
+    position: absolute;
+    width: 280px;
+    background: #c0c0c0;
+    border: 3px ridge #ffffff;
+    border-right-color: #404040;
+    border-bottom-color: #404040;
+    font-size: 12px;
+    z-index: 9998;
+    animation: shakeError 0.1s infinite;
+    box-shadow: 4px 4px 10px rgba(0,0,0,0.6);
+    font-family: 'Segoe UI', 'Tahoma', sans-serif;
+}
+
+@keyframes shakeError {
+    0% { transform: translate(0px, 0px); }
+    20% { transform: translate(2px, -1px); }
+    40% { transform: translate(-2px, 2px); }
+    60% { transform: translate(1px, -2px); }
+    80% { transform: translate(-1px, 1px); }
+    100% { transform: translate(0px, 0px); }
+}
+
+.error-title {
+    background: darkred;
+    color: white;
+    padding: 5px 8px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.error-body {
+    padding: 12px 8px;
+    background: #d4d0c8;
+    color: black;
+}
+
+/* STICKY NOTE - intense */
+.note {
+    position: absolute;
+    width: 180px;
+    height: 130px;
+    background: #fff9c4;
+    border-left: 4px solid #f9a825;
+    border-top: 1px solid #ffe082;
+    box-shadow: 5px 5px 12px rgba(0,0,0,0.3);
+    z-index: 9997;
+    font-family: 'Comic Sans MS', 'Segoe UI', cursive;
+    padding: 8px 10px;
+    transform: rotate(var(--rot, -2deg));
+    font-size: 13px;
+    font-weight: bold;
+    transition: all 0.05s linear;
+    cursor: move;
+    color: #2c2b2b;
+}
+
+.note div:first-child {
+    font-weight: bold;
+    border-bottom: 1px dashed #ccb35e;
+    margin-bottom: 6px;
+    color: #b95f00;
+}
+
+/* SHUTDOWN OVERLAY - full screen countdown */
+.shutdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    z-index: 20000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Courier New', monospace;
+    color: #00ffcc;
+    text-shadow: 0 0 8px #00ffcc;
+    backdrop-filter: blur(10px);
+    animation: fadeInShutdown 0.3s ease;
+    pointer-events: all;
+}
+
+@keyframes fadeInShutdown {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.shutdown-text {
+    font-size: 48px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    margin-bottom: 30px;
+    border-right: 3px solid #00ffcc;
+    padding-right: 15px;
+    animation: pulseText 0.8s infinite;
+}
+
+.countdown-number {
+    font-size: 80px;
+    font-weight: 900;
+    background: rgba(0,0,0,0.7);
+    padding: 20px 50px;
+    border-radius: 20px;
+    border: 2px solid #ff3366;
+    box-shadow: 0 0 30px rgba(255,51,102,0.5);
+    margin-top: 20px;
+    font-family: monospace;
+}
+
+.shutdown-sub {
+    margin-top: 30px;
+    font-size: 14px;
+    color: #ff6666;
+}
+
+@keyframes pulseText {
+    0% { opacity: 0.7; text-shadow: 0 0 0px #00ffcc; }
+    100% { opacity: 1; text-shadow: 0 0 15px #00ffcc; }
+}
+
+.virus-alert {
+    position: fixed;
+    bottom: 55px;
+    right: 20px;
+    background: #000000aa;
+    backdrop-filter: blur(8px);
+    color: lime;
+    font-family: monospace;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 20;
+    border: 1px solid red;
+    pointer-events: none;
+    font-weight: bold;
+}
+
+.scanlines-active {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 2px, transparent 2px, transparent 6px);
+    pointer-events: none;
+    z-index: 14;
+    display: none;
+}
+
+/* intense screen flash */
+.flash-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 19999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.08s;
+}
+
+/* YouTube Audio Player (hidden) */
+#youtubeAudio {
+    position: fixed;
+    bottom: -100px;
+    left: -100px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.audio-overlay-note {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.7);
+    color: #ff3366;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    z-index: 100;
+    border-left: 3px solid red;
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+</style>
+</head>
+<body>
+
+<video id="bgVideo" autoplay muted loop playsinline>
+    <source src="video.mp4" type="video/mp4">
+</video>
+
+<!-- YouTube audio embed (hidden) -->
+<div id="youtubeAudioContainer" style="display: none;"></div>
+
+<div class="glitch" id="glitch"></div>
+<div class="scanlines-active" id="scanlines"></div>
+<div class="flash-effect" id="flashEffect"></div>
+
+<div class="desktop" id="desktop">
+    <div class="icon-grid">
+        <div class="desktop-icon" id="myComputerIcon">
+            <div class="icon-img"><img src="xp computer.png" alt="PC"></div>
+            <div class="icon-label">My Computer</div>
+        </div>
+        <div class="desktop-icon" id="recycleIcon">
+            <div class="icon-img"><img src="trashcan.png" alt="Trash"></div>
+            <div class="icon-label">Recycle Bin</div>
+        </div>
+        <div class="desktop-icon" id="virusIcon">
+            <div class="icon-img big-virus">
+                <img src="smiley.exe.png" alt="SWAGGER.exe">
+            </div>
+            <div class="icon-label">SWAGGER.exe</div>
+        </div>
+    </div>
+    <div class="taskbar" id="taskbar">
+        <span style="background:#1a4d1a; color:white; padding:3px 10px; margin-right:12px;"> START </span>
+        <span style="font-size:12px;"> WIN32::LEGACY_HACKED &nbsp;|&nbsp; AUDIO INFECTION </span>
+    </div>
+</div>
+
+<script>
+// ========== VIRUS ENGINE WITH YOUTUBE AUDIO + SHUTDOWN & SPOTIFY REDIRECT ==========
+let active = false;
+let shutdownTriggered = false;
+let chaosIntervals = [];
+let errorInterval = null;
+let noteInterval = null;
+let hueInterval = null;
+let intenseGlitchInterval = null;
+let shutdownCountdownInterval = null;
+let youtubePlayer = null;
+let audioStarted = false;
+
+const errorMessages = [
+    "KERNEL_DATA_INPAGE_ERROR", 
+    "SYSTEM_SERVICE_EXCEPTION", 
+    "MEMORY_MANAGEMENT_CRASH", 
+    "CRITICAL_PROCESS_DIED", 
+    "WIN32k.sys CORRUPTION", 
+    "STREAM SWAGGER // CONSEV",
+    "DEAD PROTOCOL 0xFFFF",
+    "RUNTIME_R6048: VIRUS_SPREAD",
+    "SYSTEM32: LSASS.EXE FAILURE",
+    "PROTOCOL ACTIVE",
+    "PC SHUTDOWN IMMINENT",
+    "CONSEV IS OWNER NOW",
+    "AUDIO STREAM INJECTED"
+];
+
+const noteTexts = [
+    "⚠️ STREAM BLADESWAGGER ⚠️", 
+    "🔴 CONSEV IS NOW SYSTEM OWNER", 
+    "💿 LEGACY HACKED 💿", 
+    "🎧 NOW PLAYING: CONSEV", 
+    "📀 SYSTEM OVERRIDE 📀",
+    "⚡ VIRUS: BLADESWAGGER ⚡",
+    "🔻 HACK THE PLANET 🔻",
+    "💀 SHUTDOWN IN PROGRESS",
+    "fuhfuhfuhfuhfuhfuhfuhfuhfuh",
+];
+
+// Function to load and play YouTube video audio
+function playYouTubeAudio() {
+    if (audioStarted) return;
+    audioStarted = true;
+    
+    // Create YouTube iframe API dynamically
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    
+    window.onYouTubeIframeAPIReady = function() {
+        const container = document.createElement('div');
+        container.id = 'youtube-player-container';
+        document.body.appendChild(container);
+        
+        youtubePlayer = new YT.Player('youtube-player-container', {
+            height: '0',
+            width: '0',
+            videoId: 'd7lI4AadBTg',
+            playerVars: {
+                'autoplay': 1,
+                'controls': 0,
+                'disablekb': 1,
+                'fs': 0,
+                'iv_load_policy': 3,
+                'modestbranding': 1,
+                'rel': 0,
+                'showinfo': 0,
+                'loop': 1,
+                'playlist': 'd7lI4AadBTg'
+            },
+            events: {
+                'onReady': function(event) {
+                    event.target.playVideo();
+                    event.target.setVolume(80);
+                    // Add visual audio indicator
+                    const audioNote = document.createElement('div');
+                    audioNote.className = 'audio-overlay-note';
+                    audioNote.innerHTML = '🎵 INFECTION AUDIO: CONSEV - BLADESWAGGER 🎵';
+                    document.body.appendChild(audioNote);
+                    setTimeout(() => {
+                        if(audioNote) audioNote.style.opacity = '0.7';
+                    }, 100);
+                },
+                'onError': function() {
+                }
+            }
+        });
+    };
+    
+    // Fallback in case API takes too long
+    setTimeout(() => {
+        if (!youtubePlayer && !window.YT) {
+            const fallbackNote = document.createElement('div');
+            fallbackNote.className = 'audio-overlay-note';
+            fallbackNote.innerHTML = '⚠️ AUDIO STREAM: https://youtu.be/d7lI4AadBTg ⚠️';
+            fallbackNote.style.top = '50px';
+            document.body.appendChild(fallbackNote);
+        }
+    }, 2000);
+}
+
+function flashWhite() {
+    const flash = document.getElementById("flashEffect");
+    if (!flash) return;
+    flash.style.opacity = "0.6";
+    setTimeout(() => { flash.style.opacity = "0"; }, 80);
+    setTimeout(() => { 
+        if(Math.random() > 0.6) flash.style.opacity = "0.3";
+        setTimeout(() => { if(flash) flash.style.opacity = "0"; }, 50);
+    }, 150);
+}
+
+// Super intense error spam
+function spawnErrorWindow() {
+    const errorDiv = document.createElement("div");
+    errorDiv.className = "error";
+    const randX = Math.random() * (window.innerWidth - 280);
+    const randY = Math.random() * (window.innerHeight - 150);
+    errorDiv.style.top = Math.max(10, randY) + "px";
+    errorDiv.style.left = Math.max(10, randX) + "px";
+    const randomMsg = errorMessages[Math.floor(Math.random() * errorMessages.length)];
+    errorDiv.innerHTML = `
+        <div class="error-title">
+            <span>⚠️ CRITICAL ERROR</span>
+            <span style="font-family: monospace;">[X]</span>
+        </div>
+        <div class="error-body">
+            ${randomMsg}<br>
+            <span style="font-size:10px;">System failure imminent</span>
+        </div>
+    `;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => {
+        if(errorDiv && errorDiv.remove) errorDiv.remove();
+    }, 2100);
+    if (active && Math.random() > 0.4) flashWhite();
+}
+
+function spawnStickyNote() {
+    const note = document.createElement("div");
+    note.className = "note";
+    const randX = Math.random() * (window.innerWidth - 200);
+    const randY = Math.random() * (window.innerHeight - 150);
+    const rot = (Math.random() * 10) - 5;
+    note.style.setProperty('--rot', rot + 'deg');
+    note.style.left = randX + "px";
+    note.style.top = randY + "px";
+    const randomNote = noteTexts[Math.floor(Math.random() * noteTexts.length)];
+    note.innerHTML = `
+        <div>📌 VIRUS ALERT</div>
+        <div>${randomNote}</div>
+        <div style="font-size:10px; margin-top:8px;">🎵 audio injected</div>
+    `;
+    document.body.appendChild(note);
+    setTimeout(() => note.remove(), 3800);
+}
+
+// RGB distortion + more aggressive
+function startHueShift() {
+    hueInterval = setInterval(() => {
+        if (!active) return;
+        const hue = Math.random() * 360;
+        const sat = 400 + Math.random() * 300;
+        const contrast = 180 + Math.random() * 150;
+        const brightness = 0.5 + Math.random() * 0.9;
+        document.getElementById("desktop").style.filter = `hue-rotate(${hue}deg) saturate(${sat}%) contrast(${contrast}%) brightness(${brightness})`;
+        const taskbar = document.getElementById("taskbar");
+        if (taskbar) {
+            taskbar.style.backgroundColor = `rgb(${120 + Math.random() * 135}, ${30 + Math.random() * 70}, ${40 + Math.random() * 100})`;
+        }
+    }, 80);
+}
+
+function enableVideoGlitch() {
+    const video = document.getElementById("bgVideo");
+    if (video) {
+        video.style.opacity = "0.6";
+        video.play().catch(e => console.log("autoplay blocked"));
+    }
+    const glitchOverlay = document.getElementById("glitch");
+    if (glitchOverlay) glitchOverlay.style.display = "block";
+    const scanlines = document.getElementById("scanlines");
+    if (scanlines) scanlines.style.display = "block";
+}
+
+function addVirusAlertBadge() {
+    if(document.querySelector(".virus-alert")) return;
+    const badge = document.createElement("div");
+    badge.className = "virus-alert";
+    badge.innerHTML = "💀 WIN32::LEGACY_HACKED 💀<br>";
+    document.body.appendChild(badge);
+}
+
+function iconLabelGlitch() {
+    if (!active) return;
+    const labels = document.querySelectorAll(".icon-label");
+    labels.forEach(label => {
+        if(Math.random() > 0.65) {
+            label.style.textShadow = "2px 2px 0 red, -1px -1px 0 cyan";
+            label.style.backgroundColor = "rgba(0,0,0,0.9)";
+            label.style.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+            setTimeout(() => {
+                if(label) {
+                    label.style.textShadow = "";
+                    label.style.color = "white";
+                }
+            }, 120);
+        } else {
+            label.style.textShadow = "0 0 3px magenta";
+        }
+    });
+}
+
+let extraChaosTimer = null;
+function startChaoticMovement() {
+    extraChaosTimer = setInterval(() => {
+        if (!active) return;
+        const allErrors = document.querySelectorAll(".error");
+        allErrors.forEach(err => {
+            let currentLeft = parseFloat(err.style.left);
+            let currentTop = parseFloat(err.style.top);
+            if (!isNaN(currentLeft) && !isNaN(currentTop)) {
+                const deltaX = (Math.random() - 0.5) * 18;
+                const deltaY = (Math.random() - 0.5) * 16;
+                err.style.left = Math.min(window.innerWidth - 240, Math.max(5, currentLeft + deltaX)) + "px";
+                err.style.top = Math.min(window.innerHeight - 140, Math.max(5, currentTop + deltaY)) + "px";
+            }
+        });
+        const notes = document.querySelectorAll(".note");
+        notes.forEach(n => {
+            let l = parseFloat(n.style.left);
+            let t = parseFloat(n.style.top);
+            if (!isNaN(l) && !isNaN(t)) {
+                n.style.left = (l + (Math.random() - 0.5) * 7) + "px";
+                n.style.top = (t + (Math.random() - 0.5) * 7) + "px";
+            }
+        });
+    }, 280);
+}
+
+// INTENSE GLITCH EFFECT EVERY 200ms
+function startIntenseGlitchPulse() {
+    intenseGlitchInterval = setInterval(() => {
+        if (!active) return;
+        const glitchDiv = document.getElementById("glitch");
+        if (glitchDiv && Math.random() > 0.4) {
+            glitchDiv.style.opacity = "0.9";
+            setTimeout(() => { if(glitchDiv) glitchDiv.style.opacity = "0.5"; }, 70);
+        }
+        if (Math.random() > 0.7) flashWhite();
+        if (Math.random() > 0.6) {
+            document.body.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+            setTimeout(() => { document.body.style.transform = ""; }, 60);
+        }
+    }, 180);
+}
+
+// SHUTDOWN COUNTDOWN + REDIRECT TO SPOTIFY
+function startShutdownSequence() {
+    if (shutdownTriggered) return;
+    shutdownTriggered = true;
+    
+    // stop all current chaos intervals but keep visual elements
+    if (chaosIntervals.length) chaosIntervals.forEach(interval => clearInterval(interval));
+    if (errorInterval) clearInterval(errorInterval);
+    if (noteInterval) clearInterval(noteInterval);
+    if (hueInterval) clearInterval(hueInterval);
+    if (extraChaosTimer) clearInterval(extraChaosTimer);
+    if (intenseGlitchInterval) clearInterval(intenseGlitchInterval);
+    
+    // Mute YouTube audio before shutdown (optional)
+    if (youtubePlayer && youtubePlayer.setVolume) {
+        youtubePlayer.setVolume(30);
+    }
+    
+    const overlay = document.createElement("div");
+    overlay.className = "shutdown-overlay";
+    overlay.innerHTML = `
+        <div class="shutdown-text">⚠️ CRITICAL SYSTEM FAILURE ⚠️</div>
+        <div class="shutdown-sub">WIN32::LEGACY_HACKED has encountered a fatal error</div>
+        <div class="countdown-number" id="countdownNum">5</div>
+        <div class="shutdown-sub">PC shutting down in...</div>
+        <div style="margin-top: 25px; font-size: 11px;">> corrupting system files</div>
+        <div style="margin-top: 10px; font-size: 10px; color:#ff8888;">🎵 audio stream terminating</div>
+    `;
+    document.body.appendChild(overlay);
+    
+    let countdown = 5;
+    const countdownElement = document.getElementById("countdownNum");
+    
+    const shutdownFlash = setInterval(() => {
+        if (!overlay) return;
+        const flashIntense = document.createElement("div");
+        flashIntense.style.position = "fixed";
+        flashIntense.style.top = 0;
+        flashIntense.style.left = 0;
+        flashIntense.style.width = "100%";
+        flashIntense.style.height = "100%";
+        flashIntense.style.backgroundColor = `rgba(255, ${Math.random() * 100}, 0, 0.4)`;
+        flashIntense.style.pointerEvents = "none";
+        flashIntense.style.zIndex = "19998";
+        document.body.appendChild(flashIntense);
+        setTimeout(() => flashIntense.remove(), 70);
+    }, 200);
+    
+    shutdownCountdownInterval = setInterval(() => {
+        countdown--;
+        if (countdownElement) {
+            countdownElement.textContent = countdown;
+            if (countdown <= 0) {
+                countdownElement.textContent = "0";
+            }
+            countdownElement.style.transform = `scale(${1 + Math.random() * 0.3})`;
+            setTimeout(() => { if(countdownElement) countdownElement.style.transform = "scale(1)"; }, 100);
+        }
+        
+        if (countdown <= 0) {
+            clearInterval(shutdownCountdownInterval);
+            clearInterval(shutdownFlash);
+            
+            const finalFlash = document.createElement("div");
+            finalFlash.style.position = "fixed";
+            finalFlash.style.top = 0;
+            finalFlash.style.left = 0;
+            finalFlash.style.width = "100%";
+            finalFlash.style.height = "100%";
+            finalFlash.style.backgroundColor = "white";
+            finalFlash.style.zIndex = "30000";
+            finalFlash.style.opacity = "1";
+            document.body.appendChild(finalFlash);
+            
+            setTimeout(() => {
+                document.body.style.backgroundColor = "black";
+                const allElements = document.querySelectorAll("body > *");
+                allElements.forEach(el => {
+                    if (el !== finalFlash) el.style.opacity = "0";
+                });
+                finalFlash.style.opacity = "0";
+                setTimeout(() => {
+                    window.location.href = "https://open.spotify.com/artist/6bXV5OBaGz9b7k1ItxI4J9?si=xaillXaCSQ6usJ4nn8F0-A";
+                }, 200);
+            }, 200);
+        }
+    }, 1000);
+}
+
+// Terminal that leads to shutdown after chaos + play audio
+function startTerminalSequence() {
+    const existingTerm = document.querySelector(".terminal");
+    if(existingTerm) existingTerm.remove();
+    
+    // START THE YOUTUBE AUDIO IMMEDIATELY
+    playYouTubeAudio();
+    
+    const term = document.createElement("div");
+    term.className = "terminal";
+    document.body.appendChild(term);
+    
+    const bootLines = [
+        "> WIN32::LEGACY_HACKED v.2026",
+        "> EXECUTING payload.exe ...",
+        "> INJECTING PROTOCOL",
+        "> LOADING AUDIO TRACK",
+        "> SYSTEM32 CORRUPTION DETECTED",
+        "> DESKTOP OVERRIDE: FAILED ",
+        "> SPREADING CORRUPTION ...",
+        "> SHOUTING OUT CONSEV ",    
+        "> CRITICAL: MEMORY LEAK DETECTED",
+        "> AUDIO INFECTION ACTIVE - VOLUME OVERRIDE",
+        "> [ SYSTEM COMPROMISED - SHUTDOWN INITIATED ]",
+        "> WARNING: DESKTOP CORRUPTED, SHUTDOWN IN 15 SECONDS",
+        "> ACTIVATING FINAL COUNTDOWN"
+    ];
+    
+    let lineIdx = 0;
+    term.innerHTML = "";
+    
+    function writeLine() {
+        if (lineIdx < bootLines.length) {
+            term.innerHTML += bootLines[lineIdx] + "<br>";
+            lineIdx++;
+            setTimeout(writeLine, 160);
+        } else {
+            term.innerHTML += "<br><span style='color:#ff3366'>⚠️ FATAL SYSTEM ERROR - SHUTDOWN IMMINENT ⚠️</span><br>";
+            term.innerHTML += "<span style='color:#ffaa00'>PC will restart in 12 seconds...</span>";
+            term.innerHTML += "<span style='color:#88ff88'>🎵 AUDIO:´BLADESWAGGER 🎵</span>";
+            startFullChaosWithShutdownTimer();
+        }
+    }
+    writeLine();
+}
+
+function startFullChaosWithShutdownTimer() {
+    if (active) return;
+    active = true;
+    
+    enableVideoGlitch();
+    startHueShift();
+    
+    errorInterval = setInterval(() => { if (active) spawnErrorWindow(); }, 70);
+    noteInterval = setInterval(() => { if (active) spawnStickyNote(); }, 600);
+    
+    const labelGlitchInterval = setInterval(() => { if (active) iconLabelGlitch(); }, 200);
+    chaosIntervals.push(labelGlitchInterval);
+    
+    startChaoticMovement();
+    startIntenseGlitchPulse();
+    addVirusAlertBadge();
+    
+    const bgShake = setInterval(() => {
+        if (!active) return;
+        const desktopDiv = document.getElementById("desktop");
+        if (Math.random() > 0.6) {
+            desktopDiv.style.transform = `translate(${Math.random() * 5 - 2.5}px, ${Math.random() * 5 - 2.5}px)`;
+            setTimeout(() => { if(desktopDiv) desktopDiv.style.transform = ""; }, 60);
+        }
+    }, 300);
+    chaosIntervals.push(bgShake);
+    
+    chaosIntervals.push(errorInterval, noteInterval, hueInterval);
+    
+    let titleInterval = setInterval(() => {
+        if(active) {
+            document.title = active ? "💀 SHUTDOWN 💀" : "WIN32::LEGACY_HACKED";
+        } else {
+            clearInterval(titleInterval);
+        }
+    }, 600);
+    chaosIntervals.push(titleInterval);
+    
+    // After 10 seconds of intense chaos, trigger shutdown countdown
+    setTimeout(() => {
+        if (active && !shutdownTriggered) {
+            startShutdownSequence();
+        }
+    }, 10000);
+}
+
+// Trigger virus
+document.getElementById("virusIcon").addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!active && !shutdownTriggered) {
+        startTerminalSequence();
+    }
+});
+
+document.getElementById("myComputerIcon").addEventListener("click", () => {
+    if(active) {
+        const fakeMsg = document.createElement("div");
+        fakeMsg.className = "error";
+        fakeMsg.style.top = "30%";
+        fakeMsg.style.left = "40%";
+        fakeMsg.innerHTML = `<div class="error-title">MY COMPUTER</div><div class="error-body">💀 DRIVE C: OVERLOADED<br>🎵 AUDIO INFECTION DETECTED<br>SHUTDOWN SEQUENCE ACTIVE 💀</div>`;
+        document.body.appendChild(fakeMsg);
+        setTimeout(() => fakeMsg.remove(), 1500);
+    } else {
+        alert("My Computer - System idle. Run virus.exe for full audio chaos.");
+    }
+});
+
+document.getElementById("recycleIcon").addEventListener("click", () => {
+    if(active) {
+        const recycleNote = document.createElement("div");
+        recycleNote.className = "note";
+        recycleNote.style.left = "50%";
+        recycleNote.style.top = "40%";
+        recycleNote.style.width = "180px";
+        recycleNote.innerHTML = `<div>🗑️ RECYCLE BIN</div><div>Corrupted files + audio stream detected. Shutdown unavoidable.</div>`;
+        document.body.appendChild(recycleNote);
+        setTimeout(() => recycleNote.remove(), 2000);
+    } else {
+        alert("Recycle Bin: Empty. Click virus.exe for chaos + music.");
+    }
+});
+
+document.getElementById("desktop").style.display = "block";
+const originalStyle = document.getElementById("desktop").style;
+Object.defineProperty(originalStyle, "display", {
+    set: function(val) {
+        if (val === "none" && active === true) return;
+        this._value = val;
+    },
+    get: function() { return this._value || "block"; }
+});
+
+console.log("WIN32 Legacy Desktop - AUDIO INFECTION + SHUTDOWN + SPOTIFY REDIRECT READY");
+</script>
+</body>
+</html>
