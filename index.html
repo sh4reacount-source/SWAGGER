@@ -412,7 +412,7 @@ body {
     </div>
     <div class="taskbar" id="taskbar">
         <span style="background:#1a4d1a; color:white; padding:3px 10px; margin-right:12px;"> START </span>
-        <span style="font-size:12px;"> WIN32::LEGACY_HACKED &nbsp;|&nbsp; AUDIO INFECTION </span>
+        <span style="font-size:12px;"> win32::legacy </span>
     </div>
 </div>
 
@@ -608,7 +608,7 @@ function addVirusAlertBadge() {
     if(document.querySelector(".virus-alert")) return;
     const badge = document.createElement("div");
     badge.className = "virus-alert";
-    badge.innerHTML = "💀 WIN32::LEGACY_HACKED 💀<br>";
+    badge.innerHTML = "💀 SWAGGER 💀<br>";
     document.body.appendChild(badge);
 }
 
@@ -698,7 +698,7 @@ function startShutdownSequence() {
     overlay.className = "shutdown-overlay";
     overlay.innerHTML = `
         <div class="shutdown-text">⚠️ CRITICAL SYSTEM FAILURE ⚠️</div>
-        <div class="shutdown-sub">WIN32::LEGACY_HACKED has encountered a fatal error</div>
+        <div class="shutdown-sub">SWAGGER has encountered a fatal error</div>
         <div class="countdown-number" id="countdownNum">5</div>
         <div class="shutdown-sub">PC shutting down in...</div>
         <div style="margin-top: 25px; font-size: 11px;">> corrupting system files</div>
@@ -778,7 +778,7 @@ function startTerminalSequence() {
     document.body.appendChild(term);
     
     const bootLines = [
-        "> WIN32::LEGACY_HACKED v.2026",
+        "> SWAGGER v.2026",
         "> EXECUTING payload.exe ...",
         "> INJECTING PROTOCOL",
         "> LOADING AUDIO TRACK",
@@ -842,7 +842,7 @@ function startFullChaosWithShutdownTimer() {
     
     let titleInterval = setInterval(() => {
         if(active) {
-            document.title = active ? "💀 SHUTDOWN 💀" : "WIN32::LEGACY_HACKED";
+            document.title = active ? "💀 SHUTDOWN 💀" : "SWAGGER";
         } else {
             clearInterval(titleInterval);
         }
